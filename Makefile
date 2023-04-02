@@ -14,5 +14,5 @@ vet: fmt
 
 build: vet
 	go mod tidy
-	go build
+	go build -o main.out
 .PHONY: build
