@@ -572,6 +572,7 @@ func Serve(clientRequests chan *Request, quit chan bool) {
 
 ## Errors
 `error`の型がある。
+`errors.New("some message")`と`fmt.Errorf("%s", message)`のような書き方がイディオム的。
 ```
 // PathError records an error and the operation and
 // file path that caused it.
