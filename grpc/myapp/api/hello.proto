@@ -10,6 +10,8 @@ option go_package = "pkg/grpc";
 service GreetingService {
   // サービスが持つメソッドの定義
   rpc Hello(HelloRequest) returns (HelloResponse);
+
+  rpc HelloServerStream(HelloRequest) returns (stream HelloResponse);
 }
 
 // 型の定義

@@ -23,7 +23,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GreetingService_Hello_FullMethodName = "/myapp.GreetingService/Hello"
+	GreetingService_Hello_FullMethodName             = "/myapp.GreetingService/Hello"
+	GreetingService_HelloServerStream_FullMethodName = "/myapp.GreetingService/HelloServerStream"
 )
 
 // GreetingServiceClient is the client API for GreetingService service.
@@ -34,6 +35,7 @@ const (
 type GreetingServiceClient interface {
 	// サービスが持つメソッドの定義
 	Hello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+	HelloServerStream(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HelloResponse], error)
 }
 
 type greetingServiceClient struct {
@@ -54,6 +56,25 @@ func (c *greetingServiceClient) Hello(ctx context.Context, in *HelloRequest, opt
 	return out, nil
 }
 
+func (c *greetingServiceClient) HelloServerStream(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HelloResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &GreetingService_ServiceDesc.Streams[0], GreetingService_HelloServerStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[HelloRequest, HelloResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type GreetingService_HelloServerStreamClient = grpc.ServerStreamingClient[HelloResponse]
+
 // GreetingServiceServer is the server API for GreetingService service.
 // All implementations must embed UnimplementedGreetingServiceServer
 // for forward compatibility.
@@ -62,6 +83,7 @@ func (c *greetingServiceClient) Hello(ctx context.Context, in *HelloRequest, opt
 type GreetingServiceServer interface {
 	// サービスが持つメソッドの定義
 	Hello(context.Context, *HelloRequest) (*HelloResponse, error)
+	HelloServerStream(*HelloRequest, grpc.ServerStreamingServer[HelloResponse]) error
 	mustEmbedUnimplementedGreetingServiceServer()
 }
 
@@ -74,6 +96,9 @@ type UnimplementedGreetingServiceServer struct{}
 
 func (UnimplementedGreetingServiceServer) Hello(context.Context, *HelloRequest) (*HelloResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
+}
+func (UnimplementedGreetingServiceServer) HelloServerStream(*HelloRequest, grpc.ServerStreamingServer[HelloResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method HelloServerStream not implemented")
 }
 func (UnimplementedGreetingServiceServer) mustEmbedUnimplementedGreetingServiceServer() {}
 func (UnimplementedGreetingServiceServer) testEmbeddedByValue()                         {}
@@ -114,6 +139,17 @@ func _GreetingService_Hello_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GreetingService_HelloServerStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(HelloRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(GreetingServiceServer).HelloServerStream(m, &grpc.GenericServerStream[HelloRequest, HelloResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type GreetingService_HelloServerStreamServer = grpc.ServerStreamingServer[HelloResponse]
+
 // GreetingService_ServiceDesc is the grpc.ServiceDesc for GreetingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -126,6 +162,12 @@ var GreetingService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GreetingService_Hello_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "HelloServerStream",
+			Handler:       _GreetingService_HelloServerStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "hello.proto",
 }
