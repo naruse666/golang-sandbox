@@ -58,6 +58,25 @@ func (s *myServer) HelloClientStream(stream grpc.ClientStreamingServer[hellopb.H
 	}
 }
 
+func (s *myServer) HelloBiStreams(stream grpc.BidiStreamingServer[hellopb.HelloRequest, hellopb.HelloResponse]) error {
+	for {
+		req, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		message := fmt.Sprintf("Hello, %v!", req.GetName())
+		if err := stream.Send(&hellopb.HelloResponse{
+			Message: message,
+		}); err != nil {
+			return err
+		}
+	}
+}
+
 func NewMyServer() *myServer {
 	return &myServer{}
 }
