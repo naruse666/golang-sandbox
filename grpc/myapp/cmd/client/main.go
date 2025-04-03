@@ -20,6 +20,12 @@ var (
 	client  hellopb.GreetingServiceClient
 )
 
+func myUnaryClientInterceptor1(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	fmt.Println("[pre] my unary client interceptor 1", method, req)
+	err := invoker(ctx, method, req, reply, cc, opts...)
+	fmt.Println("[post] my unary client interceptor 1", reply)
+	return err
+}
 func main() {
 	fmt.Println("start gRPC Client.")
 
@@ -30,6 +36,7 @@ func main() {
 	conn, err := grpc.NewClient(
 		address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(myUnaryClientInterceptor1),
 	)
 	if err != nil {
 		log.Fatal("Connection failed.")

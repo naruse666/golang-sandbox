@@ -12,11 +12,11 @@ import (
 	"os/signal"
 	"time"
 
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	// "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
+	// "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
+	// "google.golang.org/grpc/status"
 )
 
 type myServer struct {
@@ -24,15 +24,15 @@ type myServer struct {
 }
 
 func (s *myServer) Hello(ctx context.Context, req *hellopb.HelloRequest) (*hellopb.HelloResponse, error) {
-	// return &hellopb.HelloResponse{
-	// 	Message: fmt.Sprintf("Hello, %s!", req.GetName()),
-	// }, nil
-	stat := status.New(codes.Unknown, "unknown error occurred")
-	stat, _ = stat.WithDetails(&errdetails.DebugInfo{
-		Detail: "detail reason of err",
-	})
-	err := stat.Err()
-	return nil, err
+	return &hellopb.HelloResponse{
+		Message: fmt.Sprintf("Hello, %s!", req.GetName()),
+	}, nil
+	// stat := status.New(codes.Unknown, "unknown error occurred")
+	// stat, _ = stat.WithDetails(&errdetails.DebugInfo{
+	// 	Detail: "detail reason of err",
+	// })
+	// err := stat.Err()
+	// return nil, err
 }
 
 func (s *myServer) HelloServerStream(req *hellopb.HelloRequest, stream grpc.ServerStreamingServer[hellopb.HelloResponse]) error {
@@ -89,6 +89,12 @@ func (s *myServer) HelloBiStreams(stream grpc.BidiStreamingServer[hellopb.HelloR
 func NewMyServer() *myServer {
 	return &myServer{}
 }
+func myUnaryServerInterceptor1(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("[pre] my unary server interceptor 1: ", info.FullMethod) // ハンドラの前に割り込ませる前処理
+	res, err := handler(ctx, req)                                         // 本来の処理
+	// log.Println("[post] my unary server interceptor 1: ", m)              // ハンドラの後に割り込ませる後処理
+	return res, err
+}
 func main() {
 	port := 8080
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -96,7 +102,9 @@ func main() {
 		panic(err)
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(myUnaryServerInterceptor1),
+	)
 	hellopb.RegisterGreetingServiceServer(s, NewMyServer())
 
 	reflection.Register(s)
