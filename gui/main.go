@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"log"
 	// "net/http"
+	"github.com/golang/freetype/truetype"
 	"os"
 	"strings"
 
@@ -14,8 +15,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 
-	// "github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"golang.org/x/image/font/basicfont"
 	"golang.org/x/net/html"
 )
 
@@ -26,10 +25,10 @@ type Game struct {
 
 func (g *Game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
-		g.scrollY += 4
+		g.scrollY += 20
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
-		g.scrollY -= 4
+		g.scrollY -= 20
 	}
 	// mouse wheel
 	_, dy := ebiten.Wheel()
@@ -42,7 +41,11 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	face := basicfont.Face7x13
+	ttf, _ := os.ReadFile("./font_1_kokugl_1.15_rls.ttf")
+	font, _ := truetype.Parse(ttf)
+	face := truetype.NewFace(font, &truetype.Options{
+		Size: 16,
+	})
 	y := 30
 	for _, line := range g.lines {
 		// x := 20 + line.Depth*20
