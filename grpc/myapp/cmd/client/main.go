@@ -8,6 +8,7 @@ import (
 	_ "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"io"
 	"log"
@@ -76,6 +77,7 @@ M:
 }
 
 func Hello() {
+	var header, trailer metadata.MD
 	fmt.Println("Please enter your name.")
 	scanner.Scan()
 	name := scanner.Text()
@@ -84,7 +86,11 @@ func Hello() {
 		Name: name,
 	}
 
-	res, err := client.Hello(context.Background(), req)
+	ctx := context.Background()
+	md := metadata.New(map[string]string{"type": "unary", "from": "client"})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	res, err := client.Hello(ctx, req, grpc.Header(&header), grpc.Trailer(&trailer))
 	if err != nil {
 		// fmt.Println(err)
 		if stat, ok := status.FromError(err); ok {
@@ -95,6 +101,8 @@ func Hello() {
 			fmt.Println(err)
 		}
 	} else {
+		fmt.Println(header)
+		fmt.Println(trailer)
 		fmt.Println(res.GetMessage())
 	}
 }
