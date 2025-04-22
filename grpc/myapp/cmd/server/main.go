@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"io"
 	"log"
 	hellopb "mygrpc/pkg/grpc"
@@ -11,7 +13,6 @@ import (
 	"os"
 	"os/signal"
 	"time"
-
 	// "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	// "google.golang.org/grpc/codes"
@@ -121,6 +122,11 @@ func main() {
 		grpc.UnaryInterceptor(myUnaryServerInterceptor1),
 	)
 	hellopb.RegisterGreetingServiceServer(s, NewMyServer())
+
+	healthSrv := health.NewServer()
+	healthpb.RegisterHealthServer(s, healthSrv)
+	healthSrv.SetServingStatus("myapp", healthpb.HealthCheckResponse_SERVING)
+	healthSrv.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
 
 	reflection.Register(s)
 
